@@ -23,8 +23,8 @@
 
 #include "copyright.h"
 #include "main.h"
-#include "syscall.h"
 #include "ksyscall.h"
+#include "syscall.h"
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -48,65 +48,156 @@
 //	is in machine.h.
 //----------------------------------------------------------------------
 
-void ExceptionHandler(ExceptionType which) {
-  int type = kernel->machine->ReadRegister(2);
+void ExceptionHandler(ExceptionType which)
+{
+    int type = kernel->machine->ReadRegister(2);
 
-  DEBUG(dbgSys, "Received Exception " << which << " type: " << type << "\n");
+    DEBUG(dbgSys, "Received Exception " << which << " type: " << type << "\n");
 
-  switch (which) {
-  case SyscallException:
-    switch (type) {
-    case SC_Halt:
-      DEBUG(dbgSys, "Shutdown, initiated by user program.\n");
+    switch (which) {
+    case SyscallException:
+        switch (type) {
+        case SC_Halt:
+            DEBUG(dbgSys, "Shutdown, initiated by user program.\n");
 
-      SysHalt();
+            SysHalt();
 
-      ASSERTNOTREACHED();
-      break;
+            ASSERTNOTREACHED();
+            break;
 
-    case SC_Add:
-      DEBUG(dbgSys, "Add " << kernel->machine->ReadRegister(4) << " + "
-                           << kernel->machine->ReadRegister(5) << "\n");
+        case SC_Add:
+            DEBUG(dbgSys, "Add " << kernel->machine->ReadRegister(4) << " + "
+                                 << kernel->machine->ReadRegister(5) << "\n");
 
-      /* Process SysAdd Systemcall*/
-      int result;
-      result = SysAdd(/* int op1 */ (int)kernel->machine->ReadRegister(4),
-                      /* int op2 */ (int)kernel->machine->ReadRegister(5));
+            /* Process SysAdd Systemcall*/
+            int result;
+            result = SysAdd(/* int op1 */ (int)kernel->machine->ReadRegister(4),
+                /* int op2 */ (int)kernel->machine->ReadRegister(5));
 
-      DEBUG(dbgSys, "Add returning with " << result << "\n");
-      /* Prepare Result */
-      kernel->machine->WriteRegister(2, (int)result);
+            DEBUG(dbgSys, "Add returning with " << result << "\n");
+            /* Prepare Result */
+            kernel->machine->WriteRegister(2, (int)result);
 
-      /* Modify return point */
-      {
-        /* set previous programm counter (debugging only)*/
-        kernel->machine->WriteRegister(PrevPCReg,
-                                       kernel->machine->ReadRegister(PCReg));
+            /* Modify return point */
+            {
+                /* set previous programm counter (debugging only)*/
+                kernel->machine->WriteRegister(PrevPCReg,
+                    kernel->machine->ReadRegister(PCReg));
 
-        /* set programm counter to next instruction (all Instructions are 4 byte
+                /* set programm counter to next instruction (all Instructions are 4 byte
          * wide)*/
-        kernel->machine->WriteRegister(
-            PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+                kernel->machine->WriteRegister(
+                    PCReg, kernel->machine->ReadRegister(PCReg) + 4);
 
-        /* set next programm counter for brach execution */
-        kernel->machine->WriteRegister(
-            NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);
-      }
+                /* set next programm counter for brach execution */
+                kernel->machine->WriteRegister(
+                    NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);
+            }
 
-      return;
+            return;
 
-      ASSERTNOTREACHED();
+            ASSERTNOTREACHED();
 
-      break;
+            break;
 
+        case SC_Read:
+
+			DEBUG(dbgSys, "Read " << kernel->machine->ReadRegister(5) << " bytes from "
+								<< kernel->machine->ReadRegister(6) << "\n");
+			{
+				int result = -1;
+				char *buffer = (char *) kernel->machine->ReadReigster(4);
+				ExceptionType tran_s = kernel->currentThread->space->Translate((unsigned int) buffer, (unsigned int *) &buffer, 1);
+
+				if (tran_s == NoException) {
+					result = SysRead(buffer, (int) kernel->machine->ReadRegister(5), 
+										(OpenFileId) kernel->machine->ReadRegister(6);
+				}
+
+				DEBUG(dbgSys, "Add returning with " << result << "\n");
+				kernel->machine->WriteRegister(2, (int)result);
+			}
+
+			// ** WTF? **
+			{
+				kernel->machine->WriteRegister(PrevPCReg,
+					kernel->machine->ReadRegister(PCReg));
+				kernel->machine->WriteRegister(
+					PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+				kernel->machine->WriteRegister(
+					NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);	
+			}
+
+            return;
+            ASSERTNOTREACHED();
+            break;
+
+        case SC_Write:
+
+
+			DEBUG(dbgSys, "Write " << kernel->machine->ReadRegister(5) << " bytes to "
+								<< kernel->machine->ReadRegister(6) << "\n");
+			{
+
+				int result = -1;	
+				char *buffer = (char *) kernel->machine->ReadRegister(4);
+				ExceptionType tran_s = kernel->currentThread->space->Translate((unsigned int) buffer, (unsigned int *) &buffer, 0);
+
+				if (tran_s == NoException) {
+					result = SysWrite(buffer, (int)kernel->machine->ReadRegister(5),
+										 (OpenFileId)kernel->machine->ReadRegister(6));
+				}
+
+				DEBUG(dbgSys, "Add returning with " << result << "\n");
+				kernel->machine->WriteRegister(2, (int)result);
+			}
+
+			{
+				kernel->machine->WriteRegister(PrevPCReg,
+					kernel->machine->ReadRegister(PCReg));
+				kernel->machine->WriteRegister(
+					PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+				kernel->machine->WriteRegister(
+					NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);	
+			}
+
+
+            return;
+            ASSERTNOTREACHED();
+            break;
+
+		case SC_ExecV:
+
+			DEBUG(dbgSys, "ExecV with " << kernel->machine->ReadRegister(5) << "args.\n");
+
+			{
+				SpaceId result = SysExecV((int) kernel->machine->ReadRegister(5),
+										(char **) kernel->machine->ReadRegister(6));
+				DEBUG(dbgSys, "Add returning with " << result << "\n");
+				kernel->machine->WriteRegister(2, (int)result);
+			}
+
+			{
+				kernel->machine->WriteRegister(PrevPCReg,
+						kernel->machine->ReadRegister(PCReg));
+				kernel->machine->WriteRegister(
+						PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+				kernel->machine->WriteRegister(
+						NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);
+			}
+
+			return;
+			ASSERTNOTREACHED();
+			break;
+
+        default:
+            std::cerr << "Unexpected system call " << type << "\n";
+            break;
+        }
+        break;
     default:
-      std::cerr << "Unexpected system call " << type << "\n";
-      break;
+        std::cerr << "Unexpected user mode exception" << (int)which << "\n";
+        break;
     }
-    break;
-  default:
-    std::cerr << "Unexpected user mode exception" << (int)which << "\n";
-    break;
-  }
-  ASSERTNOTREACHED();
+    ASSERTNOTREACHED();
 }
