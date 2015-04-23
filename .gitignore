@@ -1,0 +1,8 @@
+
+*.swp
+build.linux/*.o
+build.linux/DISK_0
+build.linux/nachos
+build.linux/Makefile.dep
+test/*.noff
+test/*.o
