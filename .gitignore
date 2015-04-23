@@ -6,3 +6,10 @@ build.linux/nachos
 build.linux/Makefile.dep
 test/*.noff
 test/*.o
+
+shell/*.o
+shell/config.status
+shell/config.log
+shell/shell
+shell/Makefile
+shell/config.h
