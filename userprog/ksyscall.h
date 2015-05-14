@@ -57,13 +57,66 @@ int SysWrite(char* buffer, int size, OpenFileId id) {
 	return -1;
 }
 
+size_t user_strlen(char *src) {
+	size_t ret = 0;
+	int t = 0;
+	while (true) {
+		kernel->machine->ReadMem((int) (src + ret), 1, &t);
+		if (t == 0) return ret;
+		ret += 1;
+	}
+}
+
+struct execT {
+	char *filename;
+	AddrSpace *space;
+};
+
+void execvt(void *args_raw) {
+	AddrSpace *space = new AddrSpace;
+	struct execT *args = (struct execT *) args_raw;
+	if (space->Load(args->filename))
+		space->Execute();
+}
+
+#include <unistd.h>
+#include <sys/wait.h>
+// dunno why but you cannot inspect errno here
+
 SpaceId SysExecV(int args, char *argv[]) {
+
+	int pid = vfork();
+	if (pid == -1) {
+		return 0;
+	} else if (pid != 0) {
+		return (SpaceId) pid;
+	} else {
+		execvp(argv[0], argv);
+		return -1208;
+	}
 
 }
 
 SpaceId SysExec(char *exec_name) {
-	char *argv[] = { exec_name };
+	char *argv[] = { exec_name, NULL };
 	return SysExecV(1, argv);
+}
+
+int SysJoin(SpaceId id) {
+	if (id > 0) {
+		int status = -1;
+		int r = waitpid(id, &status, 0);
+		if (r <= 0) {
+			return -1;
+		}
+		return status;
+	}
+
+	return -1;
+}
+
+void SysExit(int status) {
+	kernel->currentThread->Finish();
 }
 
 #endif /* ! __USERPROG_KSYSCALL_H__ */

@@ -11,7 +11,7 @@ INCDIR =-I../userprog -I../lib
 CFLAGS = -G 0 -c $(INCDIR)
 
 # list of all application sources
-SOURCES = add.c halt.c matmult.c shell.c sort.c
+SOURCES = add.c halt.c matmult.c shell.c sort.c addinf.c
 
 # automatically generated lists of intermediary files
 OBJS = ${SOURCES:.c=.o}

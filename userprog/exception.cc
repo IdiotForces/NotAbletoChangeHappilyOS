@@ -100,18 +100,42 @@ void ExceptionHandler(ExceptionType which)
 
             break;
 
+		case SC_Exit:
+			DEBUG(dbgSys, "Exit with status " << (int) kernel->machine->ReadRegister(4) << ".\n");
+
+			SysExit((int) kernel->machine->ReadRegister(4));
+
+            {
+                /* set previous programm counter (debugging only)*/
+                kernel->machine->WriteRegister(PrevPCReg,
+                    kernel->machine->ReadRegister(PCReg));
+
+                /* set programm counter to next instruction (all Instructions are 4 byte
+         * wide)*/
+                kernel->machine->WriteRegister(
+                    PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+
+                /* set next programm counter for brach execution */
+                kernel->machine->WriteRegister(
+                    NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);
+            }
+
+			return;
+			ASSERTNOTREACHED();
+			break;
+
         case SC_Read:
 
 			DEBUG(dbgSys, "Read " << kernel->machine->ReadRegister(5) << " bytes from "
 								<< kernel->machine->ReadRegister(6) << "\n");
 			{
 				int result = -1;
-				char *buffer = (char *) kernel->machine->ReadReigster(4);
+				char *buffer = (char *) kernel->machine->ReadRegister(4);
 				ExceptionType tran_s = kernel->currentThread->space->Translate((unsigned int) buffer, (unsigned int *) &buffer, 1);
 
 				if (tran_s == NoException) {
-					result = SysRead(buffer, (int) kernel->machine->ReadRegister(5), 
-										(OpenFileId) kernel->machine->ReadRegister(6);
+					result = SysRead(buffer, (int) kernel->machine->ReadRegister(5),
+										(OpenFileId) kernel->machine->ReadRegister(6));
 				}
 
 				DEBUG(dbgSys, "Add returning with " << result << "\n");
@@ -125,7 +149,7 @@ void ExceptionHandler(ExceptionType which)
 				kernel->machine->WriteRegister(
 					PCReg, kernel->machine->ReadRegister(PCReg) + 4);
 				kernel->machine->WriteRegister(
-					NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);	
+					NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);
 			}
 
             return;
@@ -139,7 +163,7 @@ void ExceptionHandler(ExceptionType which)
 								<< kernel->machine->ReadRegister(6) << "\n");
 			{
 
-				int result = -1;	
+				int result = -1;
 				char *buffer = (char *) kernel->machine->ReadRegister(4);
 				ExceptionType tran_s = kernel->currentThread->space->Translate((unsigned int) buffer, (unsigned int *) &buffer, 0);
 
@@ -158,7 +182,7 @@ void ExceptionHandler(ExceptionType which)
 				kernel->machine->WriteRegister(
 					PCReg, kernel->machine->ReadRegister(PCReg) + 4);
 				kernel->machine->WriteRegister(
-					NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);	
+					NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);
 			}
 
 
@@ -171,10 +195,76 @@ void ExceptionHandler(ExceptionType which)
 			DEBUG(dbgSys, "ExecV with " << kernel->machine->ReadRegister(5) << "args.\n");
 
 			{
-				SpaceId result = SysExecV((int) kernel->machine->ReadRegister(5),
-										(char **) kernel->machine->ReadRegister(6));
+				SpaceId result;
+				char *buffer = (char *) kernel->machine->ReadRegister(4);
+				ExceptionType tran_s = kernel->currentThread->space->Translate((unsigned int) buffer, (unsigned int *) &buffer, 0);
+
+				if (tran_s == NoException) {
+					result = SysExecV((int) kernel->machine->ReadRegister(4),
+										(char **) kernel->machine->ReadRegister(5));
+				}
 				DEBUG(dbgSys, "Add returning with " << result << "\n");
 				kernel->machine->WriteRegister(2, (int)result);
+			}
+
+			{
+				kernel->machine->WriteRegister(PrevPCReg,
+						kernel->machine->ReadRegister(PCReg));
+				kernel->machine->WriteRegister(
+						PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+				kernel->machine->WriteRegister(
+						NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);
+			}
+
+			return;
+			ASSERTNOTREACHED();
+			break;
+
+		case SC_Exec:
+
+			DEBUG(dbgSys, "Exec \n");
+
+			{
+				SpaceId result;
+				char *buffer = (char *) kernel->machine->ReadRegister(4);
+				ExceptionType tran_s = kernel->currentThread->space->Translate((unsigned int) buffer, (unsigned int *) &buffer, 0);
+				size_t len = user_strlen(buffer);
+				char *buf_int = (char *) malloc(len+1);
+				for (size_t i = 0; i < len; i++)
+					kernel->machine->ReadMem((int) (buffer+i), 1, (int *) (buf_int+i));
+				buf_int[len] = '\0';
+
+				if (tran_s == NoException) {
+					result = SysExec(buf_int);
+				}
+
+				free(buf_int);
+
+				DEBUG(dbgSys, "Add returning with " << result << "\n");
+				kernel->machine->WriteRegister(2, (int) result);
+			}
+
+			{
+				kernel->machine->WriteRegister(PrevPCReg,
+						kernel->machine->ReadRegister(PCReg));
+				kernel->machine->WriteRegister(
+						PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+				kernel->machine->WriteRegister(
+						NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);
+			}
+
+			return;
+			ASSERTNOTREACHED();
+			break;
+
+		case SC_Join:
+
+			DEBUG(dbgSys, "Joining " << kernel->machine->ReadRegister(4) << "\n");
+
+			{
+				int result = SysJoin((int) kernel->machine->ReadRegister(4));
+				DEBUG(dbgSys, "Add returning with " << result << "\n");
+				kernel->machine->WriteRegister(2, (int) result);
 			}
 
 			{
