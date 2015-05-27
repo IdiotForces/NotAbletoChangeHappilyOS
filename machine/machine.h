@@ -56,7 +56,6 @@ enum ExceptionType { NoException,           // Everything ok!
 		     NumExceptionTypes
 };
 
-// User program CPU state.  The full set of MIPS registers, plus a few
 // more because we need to be able to start/stop a user program between
 // any two instructions (thus we need to keep track of things like load
 // delay slots, etc.)
@@ -136,7 +135,7 @@ class Machine {
 					// "read-only" to Nachos kernel code
 
     TranslationEntry *pageTable;
-    unsigned int pageTableSize;
+	unsigned int pageTableSize;
 
     bool ReadMem(int addr, int size, int* value);
     bool WriteMem(int addr, int size, int value);

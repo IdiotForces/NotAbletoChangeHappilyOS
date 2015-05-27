@@ -25,6 +25,20 @@ class SynchConsoleInput;
 class SynchConsoleOutput;
 class SynchDisk;
 
+class AddrSpace;
+class SynchDisk;
+
+#include <vector>
+
+struct FrameInfoEntry {
+	bool valid;
+	bool locked;
+	size_t used;
+	
+	size_t vpage;
+	AddrSpace *program;
+};
+
 class Kernel {
   public:
     Kernel(int argc, char **argv);
@@ -44,6 +58,15 @@ class Kernel {
 // These are public for notational convenience; really, 
 // they're global variables used everywhere.
 
+	size_t select_n_swap_page();
+
+	void new_page(AddrSpace *space, size_t vpn);
+	// assuming this page is IN SWAP
+	void load_page(AddrSpace *space, size_t vpn);
+
+	bool fetch_page(AddrSpace *space, size_t vpn);
+	void free_page(AddrSpace *space, size_t vpn);
+
     Thread *currentThread;	// the thread holding the CPU
     Scheduler *scheduler;	// the ready list
     Interrupt *interrupt;	// interrupt status
@@ -56,6 +79,11 @@ class Kernel {
     FileSystem *fileSystem;     
     PostOfficeInput *postOfficeIn;
     PostOfficeOutput *postOfficeOut;
+
+	FrameInfoEntry **frame_table;
+	std::vector<FrameInfoEntry *> swap_table;
+	SynchDisk *swap_disk;
+    unsigned int pageTableSize;
 
     int hostName;               // machine identifier
 

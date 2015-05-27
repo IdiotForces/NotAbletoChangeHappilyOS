@@ -18,6 +18,8 @@
 
 #define UserStackSize		1024 	// increase this as necessary!
 
+#define VM_PageNum 1024
+
 class AddrSpace {
   public:
     AddrSpace();			// Create an address space.
@@ -47,6 +49,10 @@ class AddrSpace {
 
     void InitRegisters();		// Initialize user-level CPU registers,
 					// before jumping to user code
+
+	void load_pages(size_t start_addr, size_t size, bool readonly);
+
+	friend class Kernel;
 
 };
 

@@ -55,6 +55,17 @@ void ExceptionHandler(ExceptionType which)
     DEBUG(dbgSys, "Received Exception " << which << " type: " << type << "\n");
 
     switch (which) {
+	case PageFaultException:
+		{
+			int virt_addr = kernel->machine->ReadRegister(BadVAddrReg);
+			printf("page fault, virtual addr %d\n", virt_addr);
+			kernel->load_page(kernel->currentThread->space, virt_addr / PageSize);
+			kernel->stats->numPageFaults++;
+			return;
+			ASSERTNOTREACHED();
+			break;
+		}
+
     case SyscallException:
         switch (type) {
         case SC_Halt:
