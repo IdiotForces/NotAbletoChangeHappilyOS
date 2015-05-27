@@ -449,7 +449,7 @@ static void Producer(void *arg) {
 		mutex->P(); {
 			if (count < MAX_PRODUCE_NUM) {
 				struct buf_node *new_node = new buf_node();
-				printf("I'm a Producer and I put the No.%d product in buffer.\n", count++);
+				printf("I'm Producer %u and I put the No.%d product in buffer.\n", (size_t) arg, count++);
 				new_node->next = NULL;
 				new_node->value = count-1;
 				buf_tail->next = new_node;
@@ -481,7 +481,7 @@ static void Consumer(void *arg) {
 
 		}
 		mutex->V();
-		printf("I'm a Consumer and I take the No.%d product in buffer.\n", ret);
+		printf("I'm Consumer %u and I take the No.%d product in buffer.\n", (size_t) arg, ret);
 
 		kernel->currentThread->Yield();
 	}
@@ -512,7 +512,7 @@ Thread::SelfTest()
 		char buf[64];
 		sprintf(buf, "consumer thread %d.\n", i);
 		cons[i] = new Thread(buf);
-		cons[i]->Fork((VoidFunctionPtr) Consumer, NULL);
+		cons[i]->Fork((VoidFunctionPtr) Consumer, (void *) i);
 	}
 
 	for (size_t i = 0; i < N_PROD; i++) {
@@ -520,7 +520,7 @@ Thread::SelfTest()
 		char buf[64];
 		sprintf(buf, "producer thread %d.\n", i);
 		prod[i] = new Thread(buf);
-		prod[i]->Fork((VoidFunctionPtr) Producer, NULL);
+		prod[i]->Fork((VoidFunctionPtr) Producer, (void *) i);
 	}
 
 	while (true) {
