@@ -80,7 +80,6 @@ class Kernel {
     PostOfficeInput *postOfficeIn;
     PostOfficeOutput *postOfficeOut;
 
-	FrameInfoEntry **frame_table;
 	std::vector<FrameInfoEntry *> swap_table;
 	SynchDisk *swap_disk;
     unsigned int pageTableSize;

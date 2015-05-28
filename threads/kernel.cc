@@ -103,8 +103,6 @@ Kernel::Initialize()
     synchDisk = new SynchDisk();    //
 
 	swap_disk = new SynchDisk();
-	frame_table = (FrameInfoEntry **) malloc(NumPhysPages * sizeof(FrameInfoEntry *));
-	memset(frame_table, 0, NumPhysPages * sizeof (FrameInfoEntry *));
 
 #ifdef FILESYS_STUB
     fileSystem = new FileSystem();
@@ -144,20 +142,20 @@ size_t Kernel::select_n_swap_page() {
 	size_t min_used = 0;
 
 	for (size_t i = 0; i < NumPhysPages; i++) {
-		if (frame_table[i] == NULL) {
+		if (machine->frame_table[i] == NULL) {
 			return i;
 		} else {
-			if (frame_table[i]->used < min_used) {
-				ret = i; min_used = frame_table[i]->used;
+			if (machine->frame_table[i]->used < min_used) {
+				ret = i; min_used = machine->frame_table[i]->used;
 			}
 		}
 	}
 
 	for (size_t i = 0; i < swap_table.size(); i++) {
-		if (swap_table[i] == frame_table[ret]) {
-			frame_table[ret]->used = 0;
-			frame_table[ret] = NULL;
+		if (swap_table[i] == machine->frame_table[ret]) {
+			machine->frame_table[ret]->used = 0;
 			swap_disk->WriteSector(i, machine->mainMemory + ret * PageSize);
+			machine->frame_table[ret] = NULL;
 
 			swap_table[i]->program->pageTable[swap_table[i]->vpage].valid = false;
 			swap_table[i]->program->pageTable[swap_table[i]->vpage].physicalPage = -1;
@@ -192,7 +190,7 @@ void Kernel::load_page(AddrSpace *space, size_t vpn) {
 	size_t slot = select_n_swap_page();
 	for (size_t i = 0; i < swap_table.size(); i++) {
 		if (swap_table[i]->program == space && swap_table[i]->vpage == vpn) {
-			frame_table[slot] = swap_table[i];
+			machine->frame_table[slot] = swap_table[i];
 			swap_disk->ReadSector(i, machine->mainMemory + slot * PageSize);
 
 			space->pageTable[vpn].valid = true;

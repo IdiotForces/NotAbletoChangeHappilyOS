@@ -90,6 +90,8 @@ enum ExceptionType { NoException,           // Everything ok!
 class Instruction;
 class Interrupt;
 
+class FrameInfoEntry;
+
 class Machine {
   public:
     Machine(bool debug);	// Initialize the simulation of the hardware
@@ -136,6 +138,7 @@ class Machine {
 
     TranslationEntry *pageTable;
 	unsigned int pageTableSize;
+	FrameInfoEntry **frame_table;
 
     bool ReadMem(int addr, int size, int* value);
     bool WriteMem(int addr, int size, int value);

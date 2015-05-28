@@ -58,7 +58,7 @@ void ExceptionHandler(ExceptionType which)
 	case PageFaultException:
 		{
 			int virt_addr = kernel->machine->ReadRegister(BadVAddrReg);
-			printf("page fault, virtual addr %d\n", virt_addr);
+			// printf("page fault, virtual addr %d\n", virt_addr);
 			kernel->load_page(kernel->currentThread->space, virt_addr / PageSize);
 			kernel->stats->numPageFaults++;
 			return;
@@ -142,12 +142,9 @@ void ExceptionHandler(ExceptionType which)
 			{
 				int result = -1;
 				char *buffer = (char *) kernel->machine->ReadRegister(4);
-				ExceptionType tran_s = kernel->currentThread->space->Translate((unsigned int) buffer, (unsigned int *) &buffer, 1);
 
-				if (tran_s == NoException) {
 					result = SysRead(buffer, (int) kernel->machine->ReadRegister(5),
 										(OpenFileId) kernel->machine->ReadRegister(6));
-				}
 
 				DEBUG(dbgSys, "Add returning with " << result << "\n");
 				kernel->machine->WriteRegister(2, (int)result);
@@ -176,12 +173,9 @@ void ExceptionHandler(ExceptionType which)
 
 				int result = -1;
 				char *buffer = (char *) kernel->machine->ReadRegister(4);
-				ExceptionType tran_s = kernel->currentThread->space->Translate((unsigned int) buffer, (unsigned int *) &buffer, 0);
 
-				if (tran_s == NoException) {
 					result = SysWrite(buffer, (int)kernel->machine->ReadRegister(5),
 										 (OpenFileId)kernel->machine->ReadRegister(6));
-				}
 
 				DEBUG(dbgSys, "Add returning with " << result << "\n");
 				kernel->machine->WriteRegister(2, (int)result);
@@ -207,13 +201,9 @@ void ExceptionHandler(ExceptionType which)
 
 			{
 				SpaceId result;
-				char *buffer = (char *) kernel->machine->ReadRegister(4);
-				ExceptionType tran_s = kernel->currentThread->space->Translate((unsigned int) buffer, (unsigned int *) &buffer, 0);
 
-				if (tran_s == NoException) {
-					result = SysExecV((int) kernel->machine->ReadRegister(4),
-										(char **) kernel->machine->ReadRegister(5));
-				}
+				result = SysExecV((int) kernel->machine->ReadRegister(4),
+									(char **) kernel->machine->ReadRegister(5));
 				DEBUG(dbgSys, "Add returning with " << result << "\n");
 				kernel->machine->WriteRegister(2, (int)result);
 			}
@@ -238,16 +228,13 @@ void ExceptionHandler(ExceptionType which)
 			{
 				SpaceId result;
 				char *buffer = (char *) kernel->machine->ReadRegister(4);
-				ExceptionType tran_s = kernel->currentThread->space->Translate((unsigned int) buffer, (unsigned int *) &buffer, 0);
 				size_t len = user_strlen(buffer);
 				char *buf_int = (char *) malloc(len+1);
 				for (size_t i = 0; i < len; i++)
 					kernel->machine->ReadMem((int) (buffer+i), 1, (int *) (buf_int+i));
 				buf_int[len] = '\0';
 
-				if (tran_s == NoException) {
-					result = SysExec(buf_int);
-				}
+				result = SysExec(buf_int);
 
 				free(buf_int);
 

@@ -13,3 +13,7 @@ shell/config.log
 shell/shell
 shell/Makefile
 shell/config.h
+nachos_org
+test/matmultx
+test/matmultx.c
+*.swo
